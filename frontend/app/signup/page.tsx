@@ -18,7 +18,12 @@ export default function SignupPage() {
     setMessage("");
     const { data, error } = await supabase.auth.signUp({ email, password });
     setLoading(false);
-    if (error) setMessage(error.message);
+    if (error) {
+      const alreadyRegistered = error.message.toLowerCase().includes("already");
+      setMessage(alreadyRegistered ? "This email is already available. Please login or reset your password." : error.message);
+    } else if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      setMessage("This email is already available. Please login or reset your password.");
+    }
     else if (data.session) {
       router.push("/onboarding");
     } else {

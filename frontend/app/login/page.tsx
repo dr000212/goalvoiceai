@@ -38,6 +38,7 @@ export default function LoginPage() {
         <div className="mt-6 grid gap-4">
           <input className="field" placeholder="Email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
           <input className="field" placeholder="Password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
+          <Link className="text-right text-sm font-bold text-leaf" href="/forgot-password">Forgot password?</Link>
           {error && <p className="text-sm font-semibold text-coral">{error}</p>}
           <button className="btn btn-primary" onClick={submit}>Login</button>
           <Link className="text-center text-sm font-bold text-leaf" href="/signup">Create an account</Link>
