@@ -8,6 +8,24 @@ import { api } from "@/lib/api";
 import type { Goal } from "@/types/goal";
 import type { CheckIn } from "@/types/checkin";
 
+function scoreAverage(checkIns: CheckIn[]) {
+  const scores = checkIns.map((item) => item.analysis?.overall_score).filter((score): score is number => score != null);
+  return scores.length ? Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length) : null;
+}
+
+function goalStreak(checkIns: CheckIn[]) {
+  const dates = new Set(checkIns.map((item) => item.check_in_date).filter(Boolean));
+  let streak = 0;
+  const cursor = new Date();
+  const today = cursor.toISOString().slice(0, 10);
+  if (!dates.has(today)) cursor.setDate(cursor.getDate() - 1);
+  while (dates.has(cursor.toISOString().slice(0, 10))) {
+    streak += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
+}
+
 export default function GoalDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -55,6 +73,10 @@ export default function GoalDetailPage() {
     setEditing(false);
   }
 
+  const average = scoreAverage(checkIns);
+  const latest = checkIns[0];
+  const repeatedBlockers = checkIns.flatMap((item) => item.analysis?.blockers?.map((blocker) => blocker.blocker) || []).slice(0, 4);
+
   return (
     <ProtectedRoute>
       <Navbar />
@@ -79,6 +101,46 @@ export default function GoalDetailPage() {
                 <button className="btn btn-danger" onClick={() => setConfirmingDelete(true)}>Delete goal</button>
               </div>
             </section>
+            <section className="grid gap-4 md:grid-cols-3">
+              <div className="card depth-tile p-5">
+                <p className="text-xs font-bold uppercase tracking-wide text-ink/55">Goal streak</p>
+                <p className="mt-3 text-4xl font-black text-leaf">{goalStreak(checkIns)}</p>
+                <p className="mt-1 text-sm text-ink/60">days for this goal</p>
+              </div>
+              <div className="card depth-tile p-5">
+                <p className="text-xs font-bold uppercase tracking-wide text-ink/55">Average score</p>
+                <p className="mt-3 text-4xl font-black text-leaf">{average ?? "--"}/100</p>
+                <p className="mt-1 text-sm text-ink/60">across saved check-ins</p>
+              </div>
+              <div className="card depth-tile p-5">
+                <p className="text-xs font-bold uppercase tracking-wide text-ink/55">Latest result</p>
+                <p className="mt-3 text-4xl font-black text-leaf">{latest?.analysis?.overall_score ?? "--"}/100</p>
+                <p className="mt-1 text-sm text-ink/60">{latest?.check_in_date || "No report yet"}</p>
+              </div>
+            </section>
+            <section className="card p-6">
+              <h2 className="section-title">Score trend</h2>
+              <div className="mt-5 flex h-32 items-end gap-3">
+                {checkIns.slice(0, 10).reverse().map((item) => {
+                  const score = item.analysis?.overall_score || 0;
+                  return (
+                    <div key={item.id} className="grid flex-1 gap-2 text-center">
+                      <div className="rounded-t-2xl bg-leaf shadow-soft" style={{ height: `${Math.max(8, score)}%` }} title={`${score}/100`} />
+                      <span className="text-[10px] font-bold text-ink/50">{item.check_in_date?.slice(5) || ""}</span>
+                    </div>
+                  );
+                })}
+                {checkIns.length === 0 && <p className="text-sm text-ink/65">Check in for this goal to build a score trend.</p>}
+              </div>
+            </section>
+            {repeatedBlockers.length > 0 && (
+              <section className="card p-6">
+                <h2 className="section-title">Repeated blockers</h2>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {repeatedBlockers.map((blocker) => <span key={blocker} className="pill bg-[#fbf4ef] text-coral">{blocker}</span>)}
+                </div>
+              </section>
+            )}
             {editing && (
               <section className="card grid gap-4 p-6">
                 <input className="field" value={draft.title || ""} onChange={(event) => setDraft({ ...draft, title: event.target.value })} />
@@ -96,7 +158,12 @@ export default function GoalDetailPage() {
             <section className="card p-5">
               <h2 className="section-title">Related check-ins</h2>
               <div className="mt-3 grid gap-3">
-                {checkIns.slice(0, 5).map((item) => <p key={item.id} className="rounded-2xl bg-[#f5f4ef] p-4 text-sm leading-6">{item.transcript}</p>)}
+                {checkIns.slice(0, 5).map((item) => (
+                  <button key={item.id} className="rounded-2xl bg-[#f5f4ef] p-4 text-left text-sm leading-6" onClick={() => router.push(`/check-in/${item.id}/result`)}>
+                    <span className="font-black">{item.check_in_date} - {item.analysis?.overall_score ?? "--"}/100</span>
+                    <span className="mt-2 line-clamp-2 block text-ink/70">{item.transcript}</span>
+                  </button>
+                ))}
                 {checkIns.length === 0 && <p className="text-sm text-ink/65">No check-ins yet.</p>}
               </div>
             </section>

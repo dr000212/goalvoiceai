@@ -74,6 +74,61 @@ class AnalysisService:
             raise
         return CheckInResponse(check_in=check_in, analysis=stored_analysis)
 
+    def reanalyze_existing(self, user_id: str, check_in_id: str, transcript: str) -> CheckInResponse:
+        supabase = get_supabase()
+        rows = (
+            supabase.table("check_ins")
+            .select("*")
+            .eq("id", check_in_id)
+            .eq("user_id", user_id)
+            .limit(1)
+            .execute()
+            .data
+        )
+        if not rows:
+            raise HTTPException(status_code=404, detail="Check-in not found.")
+        check_in = rows[0]
+        if not check_in.get("goal_id"):
+            raise HTTPException(status_code=400, detail="This check-in is not connected to a goal.")
+
+        goals = (
+            supabase.table("goals")
+            .select("*")
+            .eq("user_id", user_id)
+            .eq("id", check_in["goal_id"])
+            .limit(1)
+            .execute()
+            .data
+        )
+        if not goals:
+            raise HTTPException(status_code=404, detail="Goal not found.")
+
+        profile_rows = supabase.table("profiles").select("*").eq("user_id", user_id).limit(1).execute().data
+        analysis, raw = self.ai.analyze_daily(goals, transcript, profile_rows[0] if profile_rows else None)
+        updated_check_in = (
+            supabase.table("check_ins")
+            .update({"transcript": transcript})
+            .eq("id", check_in_id)
+            .eq("user_id", user_id)
+            .execute()
+            .data[0]
+        )
+        supabase.table("check_in_analyses").delete().eq("check_in_id", check_in_id).eq("user_id", user_id).execute()
+        stored_analysis = (
+            supabase.table("check_in_analyses")
+            .insert(
+                {
+                    "check_in_id": check_in_id,
+                    "user_id": user_id,
+                    **analysis.model_dump(mode="json"),
+                    "raw_ai_response": raw,
+                }
+            )
+            .execute()
+            .data[0]
+        )
+        return CheckInResponse(check_in=updated_check_in, analysis=stored_analysis)
+
     def _ensure_goal_check_in_schema(self, supabase) -> None:
         try:
             supabase.table("check_ins").select("id, goal_id").limit(1).execute()

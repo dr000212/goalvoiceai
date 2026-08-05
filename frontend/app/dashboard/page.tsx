@@ -9,6 +9,7 @@ import { GoalCard } from "@/components/GoalCard";
 import { GoalSwitcher } from "@/components/GoalSwitcher";
 import { ScoreCard } from "@/components/ScoreCard";
 import { InsightCard } from "@/components/InsightCard";
+import { InstallPrompt } from "@/components/InstallPrompt";
 import { api } from "@/lib/api";
 import type { Goal } from "@/types/goal";
 import type { CheckIn, DailyAnalysis } from "@/types/checkin";
@@ -136,6 +137,28 @@ function DailyReports({ reports }: { reports: Dashboard["daily_reports"] }) {
   );
 }
 
+function Badges({ streak, reportCount, completedGoals }: { streak: number; reportCount: number; completedGoals: number }) {
+  const badges = [
+    { label: "First check-in", earned: reportCount > 0 },
+    { label: "3-day streak", earned: streak >= 3 },
+    { label: "7-day streak", earned: streak >= 7 },
+    { label: "Completed goal", earned: completedGoals > 0 }
+  ];
+  return (
+    <section className="card p-6">
+      <h2 className="section-title">Achievements</h2>
+      <div className="mt-4 grid gap-3 md:grid-cols-4">
+        {badges.map((badge) => (
+          <div key={badge.label} className={`depth-tile rounded-2xl border p-4 text-center ${badge.earned ? "border-leaf bg-sage text-leaf" : "border-ink/10 bg-[#f5f4ef] text-ink/45"}`}>
+            <p className="font-black">{badge.earned ? "Unlocked" : "Locked"}</p>
+            <p className="mt-1 text-sm font-semibold">{badge.label}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function currentDateKey() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -166,6 +189,19 @@ export default function DashboardPage() {
     }).catch((err) => setError(err.message));
     api.get<Profile | null>("/profile").then(setProfile).catch(() => setProfile(null));
   }, []);
+
+  useEffect(() => {
+    if (!profile?.reminder_enabled || !profile.reminder_time || !("Notification" in window) || Notification.permission !== "granted") return;
+    const [hour, minute] = profile.reminder_time.split(":").map(Number);
+    const now = new Date();
+    const next = new Date();
+    next.setHours(hour || 20, minute || 0, 0, 0);
+    if (next <= now) next.setDate(next.getDate() + 1);
+    const timeout = window.setTimeout(() => {
+      new Notification("GoalVoice check-in", { body: "Choose a goal and record today's progress." });
+    }, next.getTime() - now.getTime());
+    return () => window.clearTimeout(timeout);
+  }, [profile]);
 
   const selectedGoal = data?.active_goals.find((goal) => goal.id === selectedGoalId) || data?.active_goals[0];
   const selectedReports = selectedGoal
@@ -213,6 +249,7 @@ export default function DashboardPage() {
           </div>
         </section>
         {error && <p className="card p-4 text-coral">{error}</p>}
+        <InstallPrompt />
         {!data ? <DashboardSkeleton /> : (
           <>
             {data.active_goals.length === 0 ? (
@@ -253,6 +290,7 @@ export default function DashboardPage() {
               </section>
             )}
             <DailyReports reports={selectedReports} />
+            <Badges streak={streakFromReports(selectedReports)} reportCount={selectedReports.length} completedGoals={0} />
           </>
         )}
       </main>

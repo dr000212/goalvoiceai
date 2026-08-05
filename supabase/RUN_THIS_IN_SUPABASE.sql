@@ -82,6 +82,8 @@ create table if not exists public.profiles (
   likes text,
   dislikes text,
   personal_context text,
+  reminder_time text default '',
+  reminder_enabled boolean default false,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
@@ -159,5 +161,11 @@ create policy "Users can select own profile" on public.profiles for select using
 create policy "Users can insert own profile" on public.profiles for insert with check (auth.uid() = user_id);
 create policy "Users can update own profile" on public.profiles for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "Users can delete own profile" on public.profiles for delete using (auth.uid() = user_id);
+
+notify pgrst, 'reload schema';
+
+alter table public.profiles
+  add column if not exists reminder_time text default '',
+  add column if not exists reminder_enabled boolean default false;
 
 notify pgrst, 'reload schema';

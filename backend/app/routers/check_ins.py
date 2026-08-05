@@ -1,7 +1,10 @@
 import logging
 from typing import Annotated
+from csv import DictWriter
+from io import StringIO
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from fastapi.responses import StreamingResponse
 from postgrest.exceptions import APIError
 
 from app.auth import get_current_user_id
@@ -9,6 +12,7 @@ from app.database import get_supabase
 from app.schemas.check_in_schema import (
     AnalyzeCheckInRequest,
     CheckInResponse,
+    CheckInUpdateRequest,
     CheckInWithAnalysis,
     TextCheckInRequest,
     TranscriptionResponse,
@@ -44,6 +48,53 @@ def analyze_check_in(payload: AnalyzeCheckInRequest, user_id: Annotated[str, Dep
     rate_limiter.check(f"analysis:{user_id}", limit=20, window_seconds=60 * 60, label="AI analysis")
     logger.info("Analyzing check-in for user %s and goal %s", user_id, payload.goal_id)
     return AnalysisService().analyze_and_store(user_id, payload)
+
+
+@router.put("/{check_in_id}/reanalyze", response_model=CheckInResponse)
+def reanalyze_check_in(
+    check_in_id: str,
+    payload: CheckInUpdateRequest,
+    user_id: Annotated[str, Depends(get_current_user_id)],
+):
+    rate_limiter.check(f"analysis:{user_id}", limit=20, window_seconds=60 * 60, label="AI analysis")
+    logger.info("Reanalyzing check-in %s for user %s", check_in_id, user_id)
+    return AnalysisService().reanalyze_existing(user_id, check_in_id, payload.transcript)
+
+
+@router.get("/export.csv")
+def export_check_ins(user_id: Annotated[str, Depends(get_current_user_id)]):
+    rows = (
+        get_supabase()
+        .table("check_ins")
+        .select("*, check_in_analyses(*)")
+        .eq("user_id", user_id)
+        .order("check_in_date", desc=True)
+        .execute()
+        .data
+    )
+    output = StringIO()
+    writer = DictWriter(output, fieldnames=["date", "goal_id", "input_type", "score", "mood", "transcript", "insight", "next_action"])
+    writer.writeheader()
+    for row in rows:
+        analysis = (row.get("check_in_analyses") or [None])[0] or {}
+        writer.writerow(
+            {
+                "date": row.get("check_in_date") or "",
+                "goal_id": row.get("goal_id") or "",
+                "input_type": row.get("input_type") or "",
+                "score": analysis.get("overall_score") or "",
+                "mood": analysis.get("mood") or "",
+                "transcript": row.get("transcript") or "",
+                "insight": analysis.get("insight") or "",
+                "next_action": analysis.get("tomorrow_action") or "",
+            }
+        )
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=goalvoice-check-ins.csv"},
+    )
 
 
 @router.get("", response_model=list[CheckInWithAnalysis])

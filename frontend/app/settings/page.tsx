@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ChevronRight, Edit3, LogOut, ShieldCheck, Trash2, UserRound, Waves } from "lucide-react";
+import { ChevronRight, Download, Edit3, LogOut, ShieldCheck, Trash2, UserRound, Waves } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { logout } from "@/lib/auth";
@@ -41,6 +41,25 @@ export default function SettingsPage() {
     window.location.href = "/";
   }
 
+  async function exportData() {
+    const { data } = await supabase.auth.getSession();
+    const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+    const response = await fetch(`${apiBase}/check-ins/export.csv`, {
+      headers: { Authorization: `Bearer ${data.session?.access_token}` }
+    });
+    if (!response.ok) {
+      setMessage("Could not export your data. Try again later.");
+      return;
+    }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "goalvoice-check-ins.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <ProtectedRoute>
       <Navbar />
@@ -67,6 +86,10 @@ export default function SettingsPage() {
               <ChevronRight className="h-5 w-5" aria-hidden />
             </button>
           </div>
+          <button className="btn btn-secondary justify-between" onClick={exportData}>
+            <span className="flex items-center gap-2"><Download className="h-5 w-5" aria-hidden /> Export check-ins CSV</span>
+            <ChevronRight className="h-5 w-5" aria-hidden />
+          </button>
           <button className="btn btn-danger" onClick={() => setConfirming("data")}>
             <Trash2 className="h-5 w-5" aria-hidden /> Delete all my data
           </button>
@@ -113,6 +136,12 @@ export default function SettingsPage() {
                   <div className="depth-tile rounded-2xl bg-white p-5 ring-1 ring-ink/10">
                     <p className="font-black">Anything else AI should know</p>
                     <p className="mt-2 leading-7 text-ink/70">{profile.personal_context || "Not added yet."}</p>
+                  </div>
+                  <div className="depth-tile rounded-2xl bg-sage/35 p-5 md:col-span-2">
+                    <p className="font-black">Reminder setting</p>
+                    <p className="mt-2 leading-7 text-ink/70">
+                      {profile.reminder_enabled ? `Daily reminder saved for ${profile.reminder_time || "20:00"}.` : "Daily reminders are off."}
+                    </p>
                   </div>
                 </div>
               </section>

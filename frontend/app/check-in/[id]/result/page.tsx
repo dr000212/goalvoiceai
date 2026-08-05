@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { CalendarPlus, CheckCircle2, History, MinusCircle, Rocket, SmilePlus, Sparkles, XCircle } from "lucide-react";
+import { CalendarPlus, CheckCircle2, Edit3, History, MinusCircle, Rocket, Save, SmilePlus, Sparkles, XCircle } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { scoreStatus } from "@/components/ScoreCard";
@@ -13,10 +13,32 @@ import type { CheckIn } from "@/types/checkin";
 export default function ResultPage() {
   const params = useParams<{ id: string }>();
   const [checkIn, setCheckIn] = useState<CheckIn | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
-    api.get<CheckIn>(`/check-ins/${params.id}`).then(setCheckIn);
+    api.get<CheckIn>(`/check-ins/${params.id}`).then((loaded) => {
+      setCheckIn(loaded);
+      setDraft(loaded.transcript);
+    });
   }, [params.id]);
+
+  async function reanalyze() {
+    setSaving(true);
+    setMessage("");
+    try {
+      const result = await api.put<{ check_in: CheckIn; analysis: CheckIn["analysis"] }>(`/check-ins/${params.id}/reanalyze`, { transcript: draft });
+      setCheckIn({ ...result.check_in, analysis: result.analysis });
+      setEditing(false);
+      setMessage("Updated and re-analyzed.");
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Could not update this report.");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   const analysis = checkIn?.analysis;
   const dateLabel = checkIn?.check_in_date
@@ -32,8 +54,24 @@ export default function ResultPage() {
             <h1 className="text-5xl font-black leading-tight">Daily Result</h1>
             <p className="mt-4 text-xl text-ink/65">Reflecting on your progress{dateLabel ? ` for ${dateLabel}` : ""}</p>
           </div>
-          <span className="pill bg-sage text-leaf">Journal Synchronized</span>
+          <div className="flex flex-wrap gap-2">
+            <button className="btn btn-secondary" onClick={() => setEditing((value) => !value)} type="button">
+              <Edit3 className="h-5 w-5" aria-hidden /> Edit check-in
+            </button>
+            <span className="pill bg-sage text-leaf">Journal Synchronized</span>
+          </div>
         </div>
+        {editing && (
+          <section className="card grid gap-4 p-6">
+            <h2 className="text-2xl font-black text-leaf">Edit transcript and re-run AI</h2>
+            <textarea className="field min-h-40" value={draft} onChange={(event) => setDraft(event.target.value)} />
+            {message && <p className="text-sm font-semibold text-coral">{message}</p>}
+            <button className="btn btn-primary w-fit" onClick={reanalyze} disabled={saving} type="button">
+              <Save className="h-5 w-5" aria-hidden /> {saving ? "Updating..." : "Save and re-analyze"}
+            </button>
+          </section>
+        )}
+        {!editing && message && <p className="card p-4 text-sm font-semibold text-leaf">{message}</p>}
         {!analysis ? <p className="card p-6">Preparing your analysis...</p> : (
           <>
             <div className="grid gap-6 lg:grid-cols-[1fr_0.48fr]">

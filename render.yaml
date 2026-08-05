@@ -24,3 +24,5 @@ services:
         sync: false
       - key: CORS_ORIGIN_REGEX
         value: https://.*\.vercel\.app
+      - key: ADMIN_USER_IDS
+        sync: false

@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
-from app.routers import account, check_ins, dashboard, goals, profile, reports
+from app.routers import account, admin, check_ins, dashboard, goals, profile, reports
 
 app = FastAPI(title="GoalVoice AI API", version="0.1.0")
 settings = get_settings()
@@ -22,6 +22,7 @@ app.include_router(reports.router)
 app.include_router(dashboard.router)
 app.include_router(account.router)
 app.include_router(profile.router)
+app.include_router(admin.router)
 
 
 @app.get("/health")

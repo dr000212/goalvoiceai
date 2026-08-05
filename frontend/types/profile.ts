@@ -6,6 +6,8 @@ export type Profile = {
   likes: string;
   dislikes: string;
   personal_context: string;
+  reminder_time: string;
+  reminder_enabled: boolean;
   created_at?: string;
   updated_at?: string;
 };

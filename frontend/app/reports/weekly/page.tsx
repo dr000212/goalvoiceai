@@ -8,6 +8,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { GoalSwitcher } from "@/components/GoalSwitcher";
 import { WeeklyReportCard } from "@/components/WeeklyReportCard";
 import { api } from "@/lib/api";
+import { supabase } from "@/lib/supabase";
 import type { CheckIn } from "@/types/checkin";
 import type { Goal } from "@/types/goal";
 import type { WeeklyReport } from "@/types/report";
@@ -49,6 +50,7 @@ export default function WeeklyReportsPage() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [selectedGoalId, setSelectedGoalId] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
+  const [search, setSearch] = useState("");
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -92,9 +94,32 @@ export default function WeeklyReportsPage() {
   const uniqueCheckInDays = new Set(filteredCheckIns.map((item) => item.check_in_date).filter(Boolean)).size;
   const weeklyUnlocked = uniqueCheckInDays >= 7;
   const selectedReports = filteredCheckIns.filter((item) => item.check_in_date === selectedDate);
+  const searchedReports = selectedReports.filter((item) => {
+    const text = `${item.transcript} ${item.analysis?.insight || ""} ${item.analysis?.tomorrow_action || ""}`.toLowerCase();
+    return text.includes(search.toLowerCase());
+  });
   const selectedDateLabel = selectedDate
     ? new Date(`${selectedDate}T00:00:00`).toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })
     : "Selected day";
+
+  async function exportCsv() {
+    const { data } = await supabase.auth.getSession();
+    const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+    const response = await fetch(`${apiBase}/check-ins/export.csv`, {
+      headers: { Authorization: `Bearer ${data.session?.access_token}` }
+    });
+    if (!response.ok) {
+      setNotice("Could not export your reports right now.");
+      return;
+    }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "goalvoice-check-ins.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
 
   return (
     <ProtectedRoute>
@@ -105,6 +130,7 @@ export default function WeeklyReportsPage() {
             <h1 className="page-title">Insights</h1>
             <p className="mt-3 text-ink/65">Daily reports come first. Weekly report unlocks after 7 checked-in days.</p>
           </div>
+          <button className="btn btn-secondary" onClick={exportCsv} type="button">Export CSV</button>
         </div>
         {notice && <p className="card p-4 text-sm text-ink/72">{notice}</p>}
 
@@ -155,10 +181,11 @@ export default function WeeklyReportsPage() {
 
           <div className="mt-7 grid gap-3">
             <h3 className="text-xl font-black">{selectedDateLabel}</h3>
-            {selectedReports.length === 0 && (
+            <input className="field" placeholder="Search this day's report..." value={search} onChange={(event) => setSearch(event.target.value)} />
+            {searchedReports.length === 0 && (
               <p className="rounded-2xl bg-[#f5f4ef] p-5 text-sm text-ink/65">No daily report for this date yet.</p>
             )}
-            {selectedReports.map((item) => (
+            {searchedReports.map((item) => (
               <Link key={item.id} href={`/check-in/${item.id}/result`} className="soft-row depth-tile flex items-center justify-between gap-4 p-4 transition hover:border-leaf/30 hover:shadow-soft">
                 <div className="flex min-w-0 items-center gap-4">
                   <span className="depth-icon grid h-11 w-11 shrink-0 place-items-center rounded-full bg-sage text-leaf">

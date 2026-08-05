@@ -21,6 +21,10 @@ class AnalyzeCheckInRequest(BaseModel):
     replace_today: bool = False
 
 
+class CheckInUpdateRequest(BaseModel):
+    transcript: str = Field(min_length=1)
+
+
 class CheckIn(BaseModel):
     id: str
     user_id: str

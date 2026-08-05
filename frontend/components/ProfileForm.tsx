@@ -10,7 +10,9 @@ const emptyProfile: ProfileInput = {
   current_focus: "",
   likes: "",
   dislikes: "",
-  personal_context: ""
+  personal_context: "",
+  reminder_time: "20:00",
+  reminder_enabled: false
 };
 
 export function ProfileForm({
@@ -32,9 +34,16 @@ export function ProfileForm({
     setForm({ ...emptyProfile, ...initial });
   }, [initial, dirty]);
 
-  function update(name: keyof ProfileInput, value: string) {
+  function update(name: keyof ProfileInput, value: string | boolean) {
     setDirty(true);
     setForm((current) => ({ ...current, [name]: value }));
+  }
+
+  async function enableReminder(enabled: boolean) {
+    if (enabled && "Notification" in window && Notification.permission === "default") {
+      await Notification.requestPermission();
+    }
+    update("reminder_enabled", enabled);
   }
 
   async function submit() {
@@ -83,6 +92,21 @@ export function ProfileForm({
         <span className="text-sm text-ink/60">Optional. Add your preferred tone, schedule, goals, or personal context.</span>
         <textarea className="field min-h-28" value={form.personal_context} onChange={(event) => update("personal_context", event.target.value)} />
       </label>
+      <div className="grid gap-4 rounded-2xl border border-leaf/15 bg-sage/25 p-5 md:grid-cols-[1fr_180px] md:items-center">
+        <label className="flex items-start gap-3">
+          <input
+            className="mt-1 h-5 w-5 accent-[#14422c]"
+            type="checkbox"
+            checked={form.reminder_enabled}
+            onChange={(event) => enableReminder(event.target.checked)}
+          />
+          <span>
+            <span className="block text-xl font-black">Daily reminder</span>
+            <span className="mt-1 block text-sm leading-6 text-ink/65">Save the time you want GoalVoice to remind you. Browser/email scheduling needs production notification setup.</span>
+          </span>
+        </label>
+        <input className="field" type="time" value={form.reminder_time || "20:00"} onChange={(event) => update("reminder_time", event.target.value)} />
+      </div>
       <p className="flex items-start gap-2 rounded-xl bg-sage/45 p-4 text-sm leading-6 text-leaf">
         <Lightbulb className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
         Add your name and simple context so the AI can write advice that sounds personal and useful.

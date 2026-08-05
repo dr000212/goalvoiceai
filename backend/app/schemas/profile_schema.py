@@ -9,6 +9,8 @@ class ProfileUpdate(BaseModel):
     likes: str = Field(default="", max_length=1000)
     dislikes: str = Field(default="", max_length=1000)
     personal_context: str = Field(default="", max_length=1600)
+    reminder_time: str = Field(default="", max_length=10)
+    reminder_enabled: bool = False
 
 
 class Profile(ProfileUpdate):
