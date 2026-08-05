@@ -24,7 +24,20 @@ function friendlyError(message: string, status?: number) {
   return message || "Something went wrong. Please try again.";
 }
 
+function isBrowserProductionWithLocalApi() {
+  return (
+    typeof window !== "undefined" &&
+    window.location.hostname !== "localhost" &&
+    window.location.hostname !== "127.0.0.1" &&
+    API_BASE_URL.includes("localhost")
+  );
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  if (isBrowserProductionWithLocalApi()) {
+    throw new Error("Backend URL is not set in Vercel. Set NEXT_PUBLIC_API_BASE_URL to your Render backend URL and redeploy Vercel.");
+  }
+
   const token = await getAccessToken();
   const headers = new Headers(options.headers);
   if (!(options.body instanceof FormData)) headers.set("Content-Type", "application/json");
@@ -34,11 +47,11 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   try {
     response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
   } catch (error) {
-    const hostHint =
+    const productionHint =
       typeof window !== "undefined" && window.location.hostname !== "localhost"
-        ? " Open the app at http://localhost:3000 instead of the network URL."
+        ? ` Check that NEXT_PUBLIC_API_BASE_URL in Vercel is your Render URL (${API_BASE_URL}) and that Render CORS allows ${window.location.origin}.`
         : "";
-    throw new Error(friendlyError(`Could not reach ${API_BASE_URL}${path}.${hostHint}`));
+    throw new Error(friendlyError(`Could not reach ${API_BASE_URL}${path}.${productionHint}`));
   }
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: "Network failure." }));
