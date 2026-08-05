@@ -43,6 +43,7 @@ Open `http://localhost:3000`.
 - Backend routes verify bearer tokens before reading or writing user data.
 - Supabase RLS policies restrict users to their own rows.
 - Audio is processed temporarily for transcription and is not stored by the MVP.
+- See `docs/PRODUCTION_CHECKLIST.md` before inviting real users.
 
 ## Tests
 

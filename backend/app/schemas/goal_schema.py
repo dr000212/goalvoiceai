@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 
 Importance = Literal["low", "medium", "high"]
-GoalStatus = Literal["active", "archived"]
+GoalStatus = Literal["active", "completed", "archived"]
 
 
 class GoalBase(BaseModel):

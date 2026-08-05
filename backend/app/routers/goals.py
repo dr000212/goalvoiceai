@@ -47,6 +47,14 @@ def archive_goal(goal_id: str, user_id: Annotated[str, Depends(get_current_user_
     return rows[0]
 
 
+@router.post("/{goal_id}/complete", response_model=Goal)
+def complete_goal(goal_id: str, user_id: Annotated[str, Depends(get_current_user_id)]):
+    rows = get_supabase().table("goals").update({"status": "completed"}).eq("id", goal_id).eq("user_id", user_id).execute().data
+    if not rows:
+        raise HTTPException(status_code=404, detail="Goal not found.")
+    return rows[0]
+
+
 @router.delete("/{goal_id}")
 def delete_goal(goal_id: str, user_id: Annotated[str, Depends(get_current_user_id)]):
     rows = get_supabase().table("goals").delete().eq("id", goal_id).eq("user_id", user_id).execute().data

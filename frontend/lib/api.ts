@@ -4,6 +4,26 @@ import { getAccessToken } from "./auth";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
+function friendlyError(message: string, status?: number) {
+  const lower = message.toLowerCase();
+  if (status === 401 || lower.includes("invalid token") || lower.includes("jwt")) {
+    return "Your login session expired. Please log in again.";
+  }
+  if (status === 404) return "We could not find that item. Refresh and try again.";
+  if (status === 429) return message || "Too many requests. Please wait a little and try again.";
+  if (lower.includes("failed to fetch") || lower.includes("could not reach")) {
+    return "Could not reach the server. Check your connection and try again.";
+  }
+  if (lower.includes("openai returned an empty transcript")) {
+    return "I could not hear enough speech. Record at least 5 seconds and speak close to the microphone.";
+  }
+  if (lower.includes("transcription")) {
+    return "Voice transcription failed. Try a shorter, clearer recording.";
+  }
+  if (lower.includes("database update needed")) return message;
+  return message || "Something went wrong. Please try again.";
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = await getAccessToken();
   const headers = new Headers(options.headers);
@@ -18,13 +38,11 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       typeof window !== "undefined" && window.location.hostname !== "localhost"
         ? " Open the app at http://localhost:3000 instead of the network URL."
         : "";
-    throw new Error(
-      `Could not reach ${API_BASE_URL}${path}.${hostHint} Make sure the backend is running.`
-    );
+    throw new Error(friendlyError(`Could not reach ${API_BASE_URL}${path}.${hostHint}`));
   }
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: "Network failure." }));
-    throw new Error(error.detail || "Request failed.");
+    throw new Error(friendlyError(error.detail || "Request failed.", response.status));
   }
   return response.json();
 }

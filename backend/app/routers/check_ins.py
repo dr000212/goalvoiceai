@@ -1,3 +1,4 @@
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
@@ -13,13 +14,17 @@ from app.schemas.check_in_schema import (
     TranscriptionResponse,
 )
 from app.services.analysis_service import AnalysisService
+from app.services.rate_limiter import rate_limiter
 from app.services.transcription_service import TranscriptionService
 
 router = APIRouter(prefix="/check-ins", tags=["check-ins"])
+logger = logging.getLogger(__name__)
 
 
 @router.post("/text", response_model=CheckInResponse)
 def create_text_check_in(payload: TextCheckInRequest, user_id: Annotated[str, Depends(get_current_user_id)]):
+    rate_limiter.check(f"analysis:{user_id}", limit=20, window_seconds=60 * 60, label="AI analysis")
+    logger.info("Creating text check-in for user %s", user_id)
     return AnalysisService().analyze_and_store(
         user_id,
         AnalyzeCheckInRequest(transcript=payload.transcript, input_type="text", goal_id=payload.goal_id),
@@ -28,13 +33,16 @@ def create_text_check_in(payload: TextCheckInRequest, user_id: Annotated[str, De
 
 @router.post("/voice", response_model=TranscriptionResponse)
 async def transcribe_voice(audio: UploadFile, user_id: Annotated[str, Depends(get_current_user_id)]):
-    _ = user_id
+    rate_limiter.check(f"transcription:{user_id}", limit=20, window_seconds=60 * 60, label="voice transcription")
+    logger.info("Transcribing voice check-in for user %s", user_id)
     transcript = await TranscriptionService().transcribe(audio)
     return {"transcript": transcript}
 
 
 @router.post("/analyze", response_model=CheckInResponse)
 def analyze_check_in(payload: AnalyzeCheckInRequest, user_id: Annotated[str, Depends(get_current_user_id)]):
+    rate_limiter.check(f"analysis:{user_id}", limit=20, window_seconds=60 * 60, label="AI analysis")
+    logger.info("Analyzing check-in for user %s and goal %s", user_id, payload.goal_id)
     return AnalysisService().analyze_and_store(user_id, payload)
 
 

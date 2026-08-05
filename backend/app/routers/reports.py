@@ -1,3 +1,4 @@
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
@@ -5,13 +6,17 @@ from fastapi import APIRouter, Depends
 from app.auth import get_current_user_id
 from app.database import get_supabase
 from app.schemas.report_schema import WeeklyReport
+from app.services.rate_limiter import rate_limiter
 from app.services.report_service import ReportService
 
 router = APIRouter(prefix="/reports/weekly", tags=["weekly reports"])
+logger = logging.getLogger(__name__)
 
 
 @router.post("/generate", response_model=WeeklyReport)
 def generate_weekly_report(user_id: Annotated[str, Depends(get_current_user_id)]):
+    rate_limiter.check(f"weekly-report:{user_id}", limit=5, window_seconds=60 * 60, label="weekly report")
+    logger.info("Generating weekly report for user %s", user_id)
     return ReportService().generate_and_store(user_id)
 
 

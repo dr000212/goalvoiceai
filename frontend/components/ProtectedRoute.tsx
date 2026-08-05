@@ -35,6 +35,18 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     };
   }, [router]);
 
-  if (!ready) return <main className="container py-10">Loading your workspace...</main>;
+  if (!ready) {
+    return (
+      <main className="container grid min-h-screen content-center py-10">
+        <section className="card mx-auto grid w-full max-w-md justify-items-center gap-5 p-8 text-center">
+          <div className="depth-icon h-16 w-16 animate-pulse rounded-full bg-sage" />
+          <div>
+            <h1 className="text-2xl font-black text-leaf">Opening your workspace</h1>
+            <p className="mt-2 text-sm text-ink/65">Checking your saved login session.</p>
+          </div>
+        </section>
+      </main>
+    );
+  }
   return <>{children}</>;
 }

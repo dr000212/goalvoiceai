@@ -13,7 +13,7 @@ create table if not exists public.goals (
   weekly_target text,
   daily_target text,
   importance text check (importance in ('low', 'medium', 'high')) default 'medium',
-  status text default 'active',
+  status text check (status in ('active', 'completed', 'archived')) default 'active',
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
@@ -29,6 +29,14 @@ create table if not exists public.check_ins (
 );
 
 alter table public.check_ins add column if not exists goal_id uuid references public.goals(id) on delete set null;
+
+notify pgrst, 'reload schema';
+
+alter table public.goals
+  drop constraint if exists goals_status_check;
+
+alter table public.goals
+  add constraint goals_status_check check (status in ('active', 'completed', 'archived'));
 
 notify pgrst, 'reload schema';
 

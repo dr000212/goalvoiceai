@@ -13,6 +13,9 @@ class AnalysisService:
         self.ai = ai or OpenAIService()
 
     def analyze_and_store(self, user_id: str, request: AnalyzeCheckInRequest) -> CheckInResponse:
+        if not request.goal_id:
+            raise HTTPException(status_code=400, detail="Choose a goal before submitting your check-in.")
+
         supabase = get_supabase()
         self._ensure_goal_check_in_schema(supabase)
         goal_query = (

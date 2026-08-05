@@ -8,7 +8,7 @@ export type Goal = {
   weekly_target?: string | null;
   daily_target?: string | null;
   importance: "low" | "medium" | "high";
-  status: "active" | "archived";
+  status: "active" | "completed" | "archived";
   created_at?: string;
   updated_at?: string;
 };

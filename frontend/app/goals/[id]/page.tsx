@@ -30,6 +30,11 @@ export default function GoalDetailPage() {
     router.push("/goals");
   }
 
+  async function complete() {
+    await api.post(`/goals/${params.id}/complete`);
+    router.push("/goals");
+  }
+
   async function deleteGoal() {
     await api.delete(`/goals/${params.id}`);
     router.push("/goals");
@@ -69,6 +74,7 @@ export default function GoalDetailPage() {
               </div>
               <div className="relative z-10 mt-7 flex flex-wrap gap-3">
                 <button className="btn btn-secondary" onClick={() => setEditing((value) => !value)}>Edit goal</button>
+                <button className="btn btn-primary" onClick={complete}>Mark completed</button>
                 <button className="btn btn-secondary" onClick={archive}>Archive goal</button>
                 <button className="btn btn-danger" onClick={() => setConfirmingDelete(true)}>Delete goal</button>
               </div>

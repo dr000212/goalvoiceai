@@ -197,6 +197,14 @@ export default function WeeklyReportsPage() {
                   </p>
                 </div>
               </div>
+              <div className="grid grid-cols-7 gap-2">
+                {Array.from({ length: 7 }, (_, index) => {
+                  const done = index < uniqueCheckInDays;
+                  return (
+                    <div key={index} className={`depth-tile h-4 rounded-full ${done ? "bg-leaf" : "bg-[#e8e5dd]"}`} title={done ? "Completed day" : "Needed day"} />
+                  );
+                })}
+              </div>
             </section>
           ) : (
             <>

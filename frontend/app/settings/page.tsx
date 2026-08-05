@@ -16,7 +16,7 @@ export default function SettingsPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [editingProfile, setEditingProfile] = useState(false);
-  const [confirming, setConfirming] = useState(false);
+  const [confirming, setConfirming] = useState<"data" | "account" | null>(null);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -30,7 +30,15 @@ export default function SettingsPage() {
   async function deleteData() {
     const response = await api.delete<{ message: string }>("/account/data");
     setMessage(response.message);
-    setConfirming(false);
+    setConfirming(null);
+  }
+
+  async function deleteAccount() {
+    const response = await api.delete<{ message: string }>("/account");
+    setMessage(response.message);
+    setConfirming(null);
+    await supabase.auth.signOut();
+    window.location.href = "/";
   }
 
   return (
@@ -59,8 +67,11 @@ export default function SettingsPage() {
               <ChevronRight className="h-5 w-5" aria-hidden />
             </button>
           </div>
-          <button className="btn btn-danger" onClick={() => setConfirming(true)}>
+          <button className="btn btn-danger" onClick={() => setConfirming("data")}>
             <Trash2 className="h-5 w-5" aria-hidden /> Delete all my data
+          </button>
+          <button className="btn btn-secondary border-coral/30 text-coral" onClick={() => setConfirming("account")}>
+            <Trash2 className="h-5 w-5" aria-hidden /> Delete account
           </button>
           {message && <p className="text-sm font-semibold text-leaf">{message}</p>}
         </section>
@@ -118,11 +129,15 @@ export default function SettingsPage() {
         {confirming && (
           <div className="fixed inset-0 grid place-items-center bg-ink/40 p-4">
             <section className="card max-w-md p-6">
-              <h2 className="text-xl font-black">Delete all stored data?</h2>
-              <p className="mt-3 text-sm leading-6 text-ink/72">This removes goals, check-ins, analyses, and reports. You will remain logged in.</p>
+              <h2 className="text-xl font-black">{confirming === "account" ? "Delete your account?" : "Delete all stored data?"}</h2>
+              <p className="mt-3 text-sm leading-6 text-ink/72">
+                {confirming === "account"
+                  ? "This removes your app data and deletes your login account. You will be signed out."
+                  : "This removes goals, check-ins, analyses, reports, and profile details. You will remain logged in."}
+              </p>
               <div className="mt-5 flex gap-3">
-                <button className="btn btn-secondary" onClick={() => setConfirming(false)}>Cancel</button>
-                <button className="btn btn-danger" onClick={deleteData}>Confirm delete</button>
+                <button className="btn btn-secondary" onClick={() => setConfirming(null)}>Cancel</button>
+                <button className="btn btn-danger" onClick={confirming === "account" ? deleteAccount : deleteData}>Confirm delete</button>
               </div>
             </section>
           </div>

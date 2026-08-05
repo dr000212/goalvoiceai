@@ -83,7 +83,7 @@ export function VoiceRecorder({ onTranscript }: { onTranscript: (text: string) =
           const response = await api.post<{ transcript: string }>("/check-ins/voice", formData);
           onTranscript(response.transcript);
         } catch (err) {
-          setError(err instanceof Error ? err.message : "Transcription failed.");
+          setError(err instanceof Error ? err.message : "Voice transcription failed. Record 5-15 seconds, speak clearly, and try again.");
         } finally {
           setBusy(false);
           streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -128,7 +128,11 @@ export function VoiceRecorder({ onTranscript }: { onTranscript: (text: string) =
         )}
         {busy && <span className="text-sm font-semibold text-ink/60">Transcribing...</span>}
       </div>
-      {error && <p className="mt-3 text-sm font-semibold text-coral">{error}</p>}
+      {error && (
+        <div className="mt-4 rounded-2xl border border-coral/20 bg-[#fbf4ef] p-4 text-sm font-semibold leading-6 text-coral">
+          {error}
+        </div>
+      )}
     </div>
   );
 }
