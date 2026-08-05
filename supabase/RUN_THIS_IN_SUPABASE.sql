@@ -60,6 +60,7 @@ create table if not exists public.check_in_analyses (
 create table if not exists public.weekly_reports (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users(id) on delete cascade not null,
+  goal_id uuid references public.goals(id) on delete set null,
   week_start_date date,
   week_end_date date,
   overall_week_score int,
@@ -161,6 +162,14 @@ create policy "Users can select own profile" on public.profiles for select using
 create policy "Users can insert own profile" on public.profiles for insert with check (auth.uid() = user_id);
 create policy "Users can update own profile" on public.profiles for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "Users can delete own profile" on public.profiles for delete using (auth.uid() = user_id);
+
+notify pgrst, 'reload schema';
+
+alter table public.weekly_reports
+  add column if not exists goal_id uuid references public.goals(id) on delete set null;
+
+create index if not exists weekly_reports_user_goal_created_idx
+  on public.weekly_reports(user_id, goal_id, created_at desc);
 
 notify pgrst, 'reload schema';
 

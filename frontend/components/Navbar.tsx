@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogOut, Mic2, Settings, Sprout, UserCircle } from "lucide-react";
 import { logout } from "@/lib/auth";
+import { BottomNav } from "./BottomNav";
 
 export function Navbar() {
   const pathname = usePathname();
@@ -61,6 +62,7 @@ export function Navbar() {
           );
         })}
       </div>
+      <BottomNav />
     </header>
   );
 }

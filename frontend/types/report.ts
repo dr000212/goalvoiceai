@@ -1,6 +1,7 @@
 export type WeeklyReport = {
   id: string;
   user_id: string;
+  goal_id?: string | null;
   week_start_date: string;
   week_end_date: string;
   overall_week_score: number;

@@ -99,7 +99,7 @@ class FakeSupabase:
 
 
 class FakeAI:
-    def analyze_daily(self, goals, transcript, profile=None):
+    def analyze_daily(self, goals, transcript, profile=None, recent_check_ins=None):
         analysis = DailyAnalysisCreate(
             mood="Motivated",
             energy_level=7,

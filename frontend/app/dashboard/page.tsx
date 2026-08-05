@@ -176,6 +176,12 @@ function streakFromReports(reports: Dashboard["daily_reports"]) {
   return streak;
 }
 
+function yesterdayKey() {
+  const date = new Date();
+  date.setDate(date.getDate() - 1);
+  return date.toISOString().slice(0, 10);
+}
+
 export default function DashboardPage() {
   const [data, setData] = useState<Dashboard | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -220,6 +226,15 @@ export default function DashboardPage() {
   const latestSelectedReport = selectedReports[0];
   const selectedScores = selectedReports.map((report) => report.score).filter((score): score is number => score != null);
   const selectedWeeklyAverage = selectedScores.length ? Math.round(selectedScores.reduce((total, score) => total + score, 0) / selectedScores.length) : null;
+  const missedYesterday = selectedGoal && !selectedReports.some((report) => report.date === yesterdayKey());
+
+  async function completeSelectedGoal() {
+    if (!selectedGoal) return;
+    await api.post(`/goals/${selectedGoal.id}/complete`);
+    const dashboard = await api.get<Dashboard>("/dashboard");
+    setData(dashboard);
+    setSelectedGoalId(dashboard.active_goals[0]?.id || "");
+  }
 
   return (
     <ProtectedRoute>
@@ -268,6 +283,12 @@ export default function DashboardPage() {
                   <Link className="text-sm font-bold text-leaf" href="/goals">Manage all</Link>
                 </div>
                 <GoalSwitcher goals={data.active_goals} selectedGoalId={selectedGoal?.id || ""} onSelect={setSelectedGoalId} />
+                {selectedGoal && (
+                  <div className="flex flex-wrap gap-2">
+                    <Link className="btn btn-secondary" href={`/goals/${selectedGoal.id}`}>Quick edit selected goal</Link>
+                    <button className="btn btn-secondary" onClick={completeSelectedGoal} type="button">Complete selected goal</button>
+                  </div>
+                )}
                 <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
                   <div className="grid gap-6">
                     {selectedGoal && <GoalCard key={selectedGoal.id} goal={selectedGoal} primaryAction />}
@@ -285,6 +306,13 @@ export default function DashboardPage() {
                     <CheckInCalendar days={selectedCalendarDays} />
                     <InsightCard title="Latest Insight" body={latestSelectedReport?.insight} />
                     <InsightCard title="Next Action Plan" body={latestSelectedReport?.next_action} tone="action" />
+                    {missedYesterday && (
+                      <section className="card border-l-4 border-l-coral p-6">
+                        <h2 className="text-xl font-black text-coral">Restart today</h2>
+                        <p className="mt-3 leading-7 text-ink/70">Yesterday has no check-in for this goal. Keep it simple: write what blocked you, then choose one tiny action for today.</p>
+                        <Link className="btn btn-primary mt-5" href={`/check-in?goal=${selectedGoal.id}&title=${encodeURIComponent(selectedGoal.title)}`}>Restart with one action</Link>
+                      </section>
+                    )}
                   </aside>
                 </div>
               </section>

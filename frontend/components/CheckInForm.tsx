@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Send } from "lucide-react";
+import { AlertTriangle, Coffee, Send } from "lucide-react";
 import { api } from "@/lib/api";
 import { GoalSwitcher } from "./GoalSwitcher";
 import { VoiceRecorder } from "./VoiceRecorder";
@@ -93,6 +93,25 @@ export function CheckInForm() {
     }
   }
 
+  function saveRestDay() {
+    setInputType("text");
+    setTranscript("Planned rest day. I intentionally kept this goal light today and will restart with a small action tomorrow.");
+  }
+
+  const qualitySignals = [
+    transcript.trim().length >= 40,
+    /completed|done|finished|studied|applied|built|worked|sent|created/i.test(transcript),
+    /missed|stuck|blocked|struggled|could not|didn't|did not/i.test(transcript),
+    /tomorrow|next|plan|will|morning|evening|minutes|hour/i.test(transcript)
+  ];
+  const qualityScore = qualitySignals.filter(Boolean).length;
+  const followUpPrompts = [
+    "What exactly did you complete?",
+    "What did you miss or avoid?",
+    "What blocked you?",
+    "What is tomorrow's smallest next action?"
+  ].filter((_, index) => !qualitySignals[index]);
+
   return (
     <div className="grid gap-4">
       {goals.length === 0 ? (
@@ -114,10 +133,30 @@ export function CheckInForm() {
         <p className="text-sm font-semibold text-ink/60">Checking in for</p>
         <p className="mt-1 text-lg font-black">{goalTitle || "Choose a goal"}</p>
       </div>
+      <div className="grid gap-3 rounded-2xl bg-[#f5f4ef] p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="font-black text-leaf">Check-in quality</p>
+          <span className="pill bg-white text-leaf">{qualityScore}/4 clear</span>
+        </div>
+        {followUpPrompts.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {followUpPrompts.map((prompt) => (
+              <button key={prompt} className="pill bg-white text-ink/70" onClick={() => setTranscript((current) => `${current}${current ? "\n" : ""}${prompt} `)} type="button">
+                {prompt}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm font-semibold text-leaf">Good detail. The AI has enough context for a stronger report.</p>
+        )}
+      </div>
       <label className="grid gap-2">
         <span className="font-black text-leaf">What did you do today for this goal? What did you complete, miss, or feel stuck on?</span>
         <textarea className="field min-h-48" value={transcript} onChange={(event) => setTranscript(event.target.value)} />
       </label>
+      <button className="btn btn-secondary w-fit" onClick={saveRestDay} type="button">
+        <Coffee className="h-5 w-5" aria-hidden /> Planned rest day
+      </button>
       {todayCheckIns.length > 0 && (
         <div className="rounded-2xl border border-gold/30 bg-gold/10 p-4 text-sm text-ink/75">
           You already checked in for this goal today. Submitting again can replace today's previous check-in or save another one separately.

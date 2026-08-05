@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { CalendarPlus, CheckCircle2, Edit3, History, MinusCircle, Rocket, Save, SmilePlus, Sparkles, XCircle } from "lucide-react";
+import { CalendarPlus, CheckCircle2, Download, Edit3, History, MinusCircle, Rocket, Save, Share2, SmilePlus, Sparkles, XCircle } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { scoreStatus } from "@/components/ScoreCard";
@@ -40,6 +40,17 @@ export default function ResultPage() {
     }
   }
 
+  async function shareSummary() {
+    if (!analysis) return;
+    const text = `GoalVoice Daily Result\nScore: ${analysis.overall_score}/100\nInsight: ${analysis.insight}\nNext: ${analysis.tomorrow_action}`;
+    if (navigator.share) {
+      await navigator.share({ title: "GoalVoice Daily Result", text });
+      return;
+    }
+    await navigator.clipboard.writeText(text);
+    setMessage("Summary copied to clipboard.");
+  }
+
   const analysis = checkIn?.analysis;
   const dateLabel = checkIn?.check_in_date
     ? new Date(`${checkIn.check_in_date}T00:00:00`).toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })
@@ -57,6 +68,12 @@ export default function ResultPage() {
           <div className="flex flex-wrap gap-2">
             <button className="btn btn-secondary" onClick={() => setEditing((value) => !value)} type="button">
               <Edit3 className="h-5 w-5" aria-hidden /> Edit check-in
+            </button>
+            <button className="btn btn-secondary" onClick={() => window.print()} type="button">
+              <Download className="h-5 w-5" aria-hidden /> Save PDF
+            </button>
+            <button className="btn btn-secondary" onClick={shareSummary} type="button">
+              <Share2 className="h-5 w-5" aria-hidden /> Share summary
             </button>
             <span className="pill bg-sage text-leaf">Journal Synchronized</span>
           </div>

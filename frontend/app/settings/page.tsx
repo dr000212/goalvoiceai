@@ -18,6 +18,7 @@ export default function SettingsPage() {
   const [editingProfile, setEditingProfile] = useState(false);
   const [confirming, setConfirming] = useState<"data" | "account" | null>(null);
   const [message, setMessage] = useState("");
+  const [newPassword, setNewPassword] = useState("");
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email || ""));
@@ -60,6 +61,16 @@ export default function SettingsPage() {
     URL.revokeObjectURL(url);
   }
 
+  async function changePassword() {
+    if (newPassword.length < 8) {
+      setMessage("New password should be at least 8 characters.");
+      return;
+    }
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setMessage(error ? error.message : "Password updated.");
+    if (!error) setNewPassword("");
+  }
+
   return (
     <ProtectedRoute>
       <Navbar />
@@ -90,6 +101,10 @@ export default function SettingsPage() {
             <span className="flex items-center gap-2"><Download className="h-5 w-5" aria-hidden /> Export check-ins CSV</span>
             <ChevronRight className="h-5 w-5" aria-hidden />
           </button>
+          <div className="grid gap-3 rounded-2xl bg-[#f5f4ef] p-4 sm:grid-cols-[1fr_auto]">
+            <input className="field bg-white" placeholder="New password" type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} />
+            <button className="btn btn-secondary" onClick={changePassword} type="button">Change password</button>
+          </div>
           <button className="btn btn-danger" onClick={() => setConfirming("data")}>
             <Trash2 className="h-5 w-5" aria-hidden /> Delete all my data
           </button>
@@ -97,6 +112,15 @@ export default function SettingsPage() {
             <Trash2 className="h-5 w-5" aria-hidden /> Delete account
           </button>
           {message && <p className="text-sm font-semibold text-leaf">{message}</p>}
+        </section>
+        <section className="card mt-6 grid gap-4 p-6">
+          <h2 className="text-2xl font-black text-leaf">Plan and limits</h2>
+          <p className="leading-7 text-ink/70">You are on the MVP plan. Suggested future paid limits: Free users get 1 goal and 1 check-in per day; Pro users get unlimited goals, voice check-ins, exports, and weekly reports.</p>
+          <div className="grid gap-3 md:grid-cols-3">
+            {["Goal tracking", "Voice check-ins", "Weekly reports"].map((item) => (
+              <span key={item} className="depth-tile rounded-2xl bg-sage/35 p-4 text-sm font-black text-leaf">{item}</span>
+            ))}
+          </div>
         </section>
         <div className="mt-10">
           <div className="mb-5 flex items-center justify-between gap-4">

@@ -12,21 +12,24 @@ class ReportService:
     def __init__(self, ai: OpenAIService | None = None) -> None:
         self.ai = ai or OpenAIService()
 
-    def generate_and_store(self, user_id: str, today: date | None = None) -> WeeklyReport:
+    def generate_and_store(self, user_id: str, today: date | None = None, goal_id: str | None = None) -> WeeklyReport:
         week_start, week_end = current_week_window(today)
         supabase = get_supabase()
-        goals = supabase.table("goals").select("*").eq("user_id", user_id).execute().data
+        goal_query = supabase.table("goals").select("*").eq("user_id", user_id)
+        if goal_id:
+            goal_query = goal_query.eq("id", goal_id)
+        goals = goal_query.execute().data
         profile_rows = supabase.table("profiles").select("*").eq("user_id", user_id).limit(1).execute().data
-        check_ins = (
+        check_in_query = (
             supabase.table("check_ins")
             .select("*, check_in_analyses(*)")
             .eq("user_id", user_id)
             .gte("check_in_date", week_start.isoformat())
             .lte("check_in_date", week_end.isoformat())
-            .order("check_in_date")
-            .execute()
-            .data
         )
+        if goal_id:
+            check_in_query = check_in_query.eq("goal_id", goal_id)
+        check_ins = check_in_query.order("check_in_date").execute().data
         if not check_ins:
             raise HTTPException(status_code=400, detail="Add your first check-in before generating a weekly report.")
 
@@ -36,6 +39,7 @@ class ReportService:
             .insert(
                 {
                     "user_id": user_id,
+                    "goal_id": goal_id,
                     "week_start_date": week_start.isoformat(),
                     "week_end_date": week_end.isoformat(),
                     **report.model_dump(mode="json"),

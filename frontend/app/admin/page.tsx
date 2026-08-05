@@ -8,6 +8,8 @@ import { api } from "@/lib/api";
 type AdminStatus = {
   status: string;
   counts: Record<string, number>;
+  check_ins_today: number;
+  estimated_ai_requests: number;
 };
 
 export default function AdminPage() {
@@ -29,7 +31,11 @@ export default function AdminPage() {
         {message && <p className="card p-5 text-coral">{message}</p>}
         {data && (
           <section className="grid gap-4 md:grid-cols-3">
-            {Object.entries(data.counts).map(([key, value]) => (
+            {([
+              ["check_ins_today", data.check_ins_today],
+              ["estimated_ai_requests", data.estimated_ai_requests],
+              ...Object.entries(data.counts)
+            ] as [string, number][]).map(([key, value]) => (
               <div key={key} className="card depth-tile p-5">
                 <p className="text-xs font-black uppercase tracking-wide text-ink/50">{key.replaceAll("_", " ")}</p>
                 <p className="mt-3 text-4xl font-black text-leaf">{value}</p>

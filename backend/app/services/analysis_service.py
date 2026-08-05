@@ -31,8 +31,18 @@ class AnalysisService:
         if request.goal_id and not goals:
             raise HTTPException(status_code=404, detail="Goal not found.")
 
+        recent_check_ins = (
+            supabase.table("check_ins")
+            .select("*, check_in_analyses(*)")
+            .eq("user_id", user_id)
+            .eq("goal_id", request.goal_id)
+            .order("created_at", desc=True)
+            .limit(7)
+            .execute()
+            .data
+        )
         profile_rows = supabase.table("profiles").select("*").eq("user_id", user_id).limit(1).execute().data
-        analysis, raw = self.ai.analyze_daily(goals, request.transcript, profile_rows[0] if profile_rows else None)
+        analysis, raw = self.ai.analyze_daily(goals, request.transcript, profile_rows[0] if profile_rows else None, recent_check_ins)
         if request.replace_today and request.goal_id:
             (
                 supabase.table("check_ins")
@@ -104,7 +114,17 @@ class AnalysisService:
             raise HTTPException(status_code=404, detail="Goal not found.")
 
         profile_rows = supabase.table("profiles").select("*").eq("user_id", user_id).limit(1).execute().data
-        analysis, raw = self.ai.analyze_daily(goals, transcript, profile_rows[0] if profile_rows else None)
+        recent_check_ins = (
+            supabase.table("check_ins")
+            .select("*, check_in_analyses(*)")
+            .eq("user_id", user_id)
+            .eq("goal_id", check_in["goal_id"])
+            .order("created_at", desc=True)
+            .limit(7)
+            .execute()
+            .data
+        )
+        analysis, raw = self.ai.analyze_daily(goals, transcript, profile_rows[0] if profile_rows else None, recent_check_ins)
         updated_check_in = (
             supabase.table("check_ins")
             .update({"transcript": transcript})

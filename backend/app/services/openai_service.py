@@ -92,11 +92,16 @@ class OpenAIService:
         raise HTTPException(status_code=502, detail="AI returned an invalid response.") from last_error
 
     def analyze_daily(
-        self, goals: list[dict[str, Any]], transcript: str, profile: dict[str, Any] | None = None
+        self,
+        goals: list[dict[str, Any]],
+        transcript: str,
+        profile: dict[str, Any] | None = None,
+        recent_check_ins: list[dict[str, Any]] | None = None,
     ) -> tuple[DailyAnalysisCreate, dict]:
         prompt = (
             f"User profile:\n{json.dumps(profile or {}, default=str)}\n\n"
             f"User goals:\n{json.dumps(goals, default=str)}\n\n"
+            f"Recent check-ins for memory:\n{json.dumps(recent_check_ins or [], default=str)}\n\n"
             f"Daily check-in transcript:\n{transcript}"
         )
         return self._validated_json(DAILY_SYSTEM_PROMPT, prompt, DailyAnalysisCreate)

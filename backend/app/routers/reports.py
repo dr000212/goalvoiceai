@@ -14,35 +14,34 @@ logger = logging.getLogger(__name__)
 
 
 @router.post("/generate", response_model=WeeklyReport)
-def generate_weekly_report(user_id: Annotated[str, Depends(get_current_user_id)]):
+def generate_weekly_report(user_id: Annotated[str, Depends(get_current_user_id)], goal_id: str | None = None):
     rate_limiter.check(f"weekly-report:{user_id}", limit=5, window_seconds=60 * 60, label="weekly report")
-    logger.info("Generating weekly report for user %s", user_id)
-    return ReportService().generate_and_store(user_id)
+    logger.info("Generating weekly report for user %s and goal %s", user_id, goal_id)
+    return ReportService().generate_and_store(user_id, goal_id=goal_id)
 
 
 @router.get("/latest", response_model=WeeklyReport | None)
-def latest_weekly_report(user_id: Annotated[str, Depends(get_current_user_id)]):
-    rows = (
+def latest_weekly_report(user_id: Annotated[str, Depends(get_current_user_id)], goal_id: str | None = None):
+    query = (
         get_supabase()
         .table("weekly_reports")
         .select("*")
         .eq("user_id", user_id)
-        .order("created_at", desc=True)
-        .limit(1)
-        .execute()
-        .data
     )
+    if goal_id:
+        query = query.eq("goal_id", goal_id)
+    rows = query.order("created_at", desc=True).limit(1).execute().data
     return rows[0] if rows else None
 
 
 @router.get("", response_model=list[WeeklyReport])
-def list_weekly_reports(user_id: Annotated[str, Depends(get_current_user_id)]):
-    return (
+def list_weekly_reports(user_id: Annotated[str, Depends(get_current_user_id)], goal_id: str | None = None):
+    query = (
         get_supabase()
         .table("weekly_reports")
         .select("*")
         .eq("user_id", user_id)
-        .order("created_at", desc=True)
-        .execute()
-        .data
     )
+    if goal_id:
+        query = query.eq("goal_id", goal_id)
+    return query.order("created_at", desc=True).execute().data

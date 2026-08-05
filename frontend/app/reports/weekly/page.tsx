@@ -69,6 +69,15 @@ export default function WeeklyReportsPage() {
     setSelectedDate((current) => current || allCheckIns[0]?.check_in_date || dateKey(new Date()));
   }
 
+  async function loadWeeklyForGoal(goalId: string) {
+    const [latestReport, allReports] = await Promise.all([
+      api.get<WeeklyReport | null>(`/reports/weekly/latest?goal_id=${goalId}`),
+      api.get<WeeklyReport[]>(`/reports/weekly?goal_id=${goalId}`)
+    ]);
+    setLatest(latestReport);
+    setReports(allReports);
+  }
+
   useEffect(() => {
     load().catch((err) => setNotice(err.message));
   }, []);
@@ -78,9 +87,9 @@ export default function WeeklyReportsPage() {
     setLoading(true);
     setNotice("");
     try {
-      const report = await api.post<WeeklyReport>("/reports/weekly/generate");
+      const report = await api.post<WeeklyReport>(`/reports/weekly/generate?goal_id=${selectedGoalId}`);
       setLatest(report);
-      await load();
+      if (selectedGoalId) await loadWeeklyForGoal(selectedGoalId);
       setNotice("This report is based on your available check-ins so far.");
     } catch (err) {
       setNotice(err instanceof Error ? err.message : "Could not generate report.");
@@ -138,6 +147,7 @@ export default function WeeklyReportsPage() {
           setSelectedGoalId(goalId);
           const firstForGoal = checkIns.find((item) => item.goal_id === goalId);
           setSelectedDate(firstForGoal?.check_in_date || dateKey(new Date()));
+          loadWeeklyForGoal(goalId).catch((err) => setNotice(err.message));
         }} />
 
         <section className="card p-6">

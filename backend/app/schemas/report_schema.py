@@ -23,6 +23,7 @@ class WeeklyReportCreate(BaseModel):
 class WeeklyReport(WeeklyReportCreate):
     id: str
     user_id: str
+    goal_id: str | None = None
     week_start_date: date
     week_end_date: date
     raw_ai_response: dict | None = None
