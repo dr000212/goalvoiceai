@@ -11,7 +11,7 @@ export function Navbar() {
   const links = [
     { href: "/dashboard", label: "Home" },
     { href: "/reports/weekly", label: "Insights" },
-    { href: "/goals/new", label: "Add Goal" }
+    { href: "/goals", label: "Goals" }
   ];
 
   return (
@@ -23,7 +23,7 @@ export function Navbar() {
         </Link>
         <div className="hidden items-center gap-8 md:flex">
           {links.map((link) => {
-            const active = pathname === link.href || (link.href === "/dashboard" && pathname === "/");
+            const active = pathname === link.href || (link.href === "/dashboard" && pathname === "/") || (link.href === "/goals" && pathname.startsWith("/goals"));
             return (
               <Link
                 key={link.href}
@@ -54,7 +54,7 @@ export function Navbar() {
       </nav>
       <div className="container flex gap-2 overflow-x-auto pb-2 md:hidden">
         {links.map((link) => {
-          const active = pathname === link.href || (link.href === "/dashboard" && pathname === "/");
+          const active = pathname === link.href || (link.href === "/dashboard" && pathname === "/") || (link.href === "/goals" && pathname.startsWith("/goals"));
           return (
             <Link key={link.href} href={link.href} className={`pill ${active ? "bg-leaf text-white" : "bg-white text-leaf"}`}>
               {link.label}

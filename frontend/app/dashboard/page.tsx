@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { CalendarCheck, CheckCircle2, Plus, XCircle } from "lucide-react";
+import { CalendarCheck, CheckCircle2, PartyPopper, Plus, XCircle } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { GoalCard } from "@/components/GoalCard";
@@ -196,15 +196,8 @@ export default function DashboardPage() {
   const latestSelectedReport = selectedReports[0];
   const selectedScores = selectedReports.map((report) => report.score).filter((score): score is number => score != null);
   const selectedWeeklyAverage = selectedScores.length ? Math.round(selectedScores.reduce((total, score) => total + score, 0) / selectedScores.length) : null;
-  const missedYesterday = selectedGoal && !selectedReports.some((report) => report.date === yesterdayKey());
-
-  async function completeSelectedGoal() {
-    if (!selectedGoal) return;
-    await api.post(`/goals/${selectedGoal.id}/complete`);
-    const dashboard = await api.get<Dashboard>("/dashboard");
-    setData(dashboard);
-    setSelectedGoalId(dashboard.active_goals[0]?.id || "");
-  }
+  const hasTodayCheckIn = selectedReports.some((report) => report.date === currentDateKey());
+  const missedYesterday = selectedGoal && !hasTodayCheckIn && !selectedReports.some((report) => report.date === yesterdayKey());
 
   return (
     <ProtectedRoute>
@@ -256,7 +249,6 @@ export default function DashboardPage() {
                 {selectedGoal && (
                   <div className="flex flex-wrap gap-2">
                     <Link className="btn btn-secondary" href={`/goals/${selectedGoal.id}`}>Quick edit selected goal</Link>
-                    <button className="btn btn-secondary" onClick={completeSelectedGoal} type="button">Complete selected goal</button>
                   </div>
                 )}
                 <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
@@ -276,6 +268,25 @@ export default function DashboardPage() {
                     <CheckInCalendar days={selectedCalendarDays} />
                     <InsightCard title="Latest Insight" body={latestSelectedReport?.insight} />
                     <InsightCard title="Next Action Plan" body={latestSelectedReport?.next_action} tone="action" />
+                    {selectedGoal && hasTodayCheckIn && (
+                      <section className="card border-l-4 border-l-leaf p-6">
+                        <div className="flex items-start gap-4">
+                          <span className="depth-icon grid h-12 w-12 shrink-0 place-items-center rounded-full bg-sage text-leaf">
+                            <PartyPopper className="h-6 w-6" aria-hidden />
+                          </span>
+                          <div>
+                            <h2 className="text-xl font-black text-leaf">Today is logged</h2>
+                            <p className="mt-3 leading-7 text-ink/70">
+                              Nice, this goal already has a check-in today. Open the report to review your insight, or add another note if something important changed.
+                            </p>
+                          </div>
+                        </div>
+                        <div className="mt-5 flex flex-wrap gap-2">
+                          {latestSelectedReport?.id && <Link className="btn btn-primary" href={`/check-in/${latestSelectedReport.id}/result`}>View today&apos;s report</Link>}
+                          <Link className="btn btn-secondary" href={`/check-in?goal=${selectedGoal.id}&title=${encodeURIComponent(selectedGoal.title)}`}>Add another note</Link>
+                        </div>
+                      </section>
+                    )}
                     {missedYesterday && (
                       <section className="card border-l-4 border-l-coral p-6">
                         <h2 className="text-xl font-black text-coral">Restart today</h2>

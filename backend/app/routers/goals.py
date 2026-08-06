@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.auth import get_current_user_id
 from app.database import get_supabase
@@ -16,10 +16,21 @@ def create_goal(payload: GoalCreate, user_id: Annotated[str, Depends(get_current
 
 
 @router.get("", response_model=list[Goal])
-def list_goals(user_id: Annotated[str, Depends(get_current_user_id)]):
-    return (
-        get_supabase().table("goals").select("*").eq("user_id", user_id).eq("status", "active").order("created_at", desc=True).execute().data
-    )
+def list_goals(
+    user_id: Annotated[str, Depends(get_current_user_id)],
+    include_completed: bool = Query(default=False),
+    include_archived: bool = Query(default=False),
+):
+    query = get_supabase().table("goals").select("*").eq("user_id", user_id)
+    if include_completed and include_archived:
+        query = query.in_("status", ["active", "completed", "archived"])
+    elif include_completed:
+        query = query.in_("status", ["active", "completed"])
+    elif include_archived:
+        query = query.in_("status", ["active", "archived"])
+    else:
+        query = query.eq("status", "active")
+    return query.order("created_at", desc=True).execute().data
 
 
 @router.get("/{goal_id}", response_model=Goal)
