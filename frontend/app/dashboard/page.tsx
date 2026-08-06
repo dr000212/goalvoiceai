@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { CalendarCheck, CheckCircle2, PartyPopper, Plus, XCircle } from "lucide-react";
+import { CalendarCheck, CheckCircle2, PartyPopper, Plus, Sparkles, XCircle } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { GoalCard } from "@/components/GoalCard";
@@ -146,12 +146,6 @@ function streakFromReports(reports: Dashboard["daily_reports"]) {
   return streak;
 }
 
-function yesterdayKey() {
-  const date = new Date();
-  date.setDate(date.getDate() - 1);
-  return date.toISOString().slice(0, 10);
-}
-
 export default function DashboardPage() {
   const [data, setData] = useState<Dashboard | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -161,7 +155,12 @@ export default function DashboardPage() {
   useEffect(() => {
     api.get<Dashboard>("/dashboard").then((dashboard) => {
       setData(dashboard);
-      setSelectedGoalId((current) => current || dashboard.active_goals[0]?.id || "");
+      setSelectedGoalId((current) => {
+        if (current) return current;
+        const today = currentDateKey();
+        const todayGoalId = dashboard.daily_reports.find((report) => report.date === today && report.goal_id)?.goal_id;
+        return todayGoalId || dashboard.active_goals[0]?.id || "";
+      });
     }).catch((err) => setError(err.message));
     api.get<Profile | null>("/profile").then(setProfile).catch(() => setProfile(null));
   }, []);
@@ -197,7 +196,6 @@ export default function DashboardPage() {
   const selectedScores = selectedReports.map((report) => report.score).filter((score): score is number => score != null);
   const selectedWeeklyAverage = selectedScores.length ? Math.round(selectedScores.reduce((total, score) => total + score, 0) / selectedScores.length) : null;
   const hasTodayCheckIn = selectedReports.some((report) => report.date === currentDateKey());
-  const missedYesterday = selectedGoal && !hasTodayCheckIn && !selectedReports.some((report) => report.date === yesterdayKey());
 
   return (
     <ProtectedRoute>
@@ -268,30 +266,29 @@ export default function DashboardPage() {
                     <CheckInCalendar days={selectedCalendarDays} />
                     <InsightCard title="Latest Insight" body={latestSelectedReport?.insight} />
                     <InsightCard title="Next Action Plan" body={latestSelectedReport?.next_action} tone="action" />
-                    {selectedGoal && hasTodayCheckIn && (
-                      <section className="card border-l-4 border-l-leaf p-6">
+                    {selectedGoal && (
+                      <section className={`card border-l-4 p-6 ${hasTodayCheckIn ? "border-l-leaf" : "border-l-gold"}`}>
                         <div className="flex items-start gap-4">
-                          <span className="depth-icon grid h-12 w-12 shrink-0 place-items-center rounded-full bg-sage text-leaf">
-                            <PartyPopper className="h-6 w-6" aria-hidden />
+                          <span className={`depth-icon grid h-12 w-12 shrink-0 place-items-center rounded-full ${hasTodayCheckIn ? "bg-sage text-leaf" : "bg-gold/15 text-gold"}`}>
+                            {hasTodayCheckIn ? <PartyPopper className="h-6 w-6" aria-hidden /> : <Sparkles className="h-6 w-6" aria-hidden />}
                           </span>
                           <div>
-                            <h2 className="text-xl font-black text-leaf">Today is logged</h2>
+                            <h2 className={`text-xl font-black ${hasTodayCheckIn ? "text-leaf" : "text-gold"}`}>
+                              {hasTodayCheckIn ? "Today is logged" : "Ready for today's check-in"}
+                            </h2>
                             <p className="mt-3 leading-7 text-ink/70">
-                              Nice, this goal already has a check-in today. Open the report to review your insight, or add another note if something important changed.
+                              {hasTodayCheckIn
+                                ? "Nice, this goal already has a check-in today. Open the report to review your insight, or add another note if something important changed."
+                                : "This goal has not been checked in today. Add a quick note about what you finished, missed, or got stuck on."}
                             </p>
                           </div>
                         </div>
                         <div className="mt-5 flex flex-wrap gap-2">
                           {latestSelectedReport?.id && <Link className="btn btn-primary" href={`/check-in/${latestSelectedReport.id}/result`}>View today&apos;s report</Link>}
-                          <Link className="btn btn-secondary" href={`/check-in?goal=${selectedGoal.id}&title=${encodeURIComponent(selectedGoal.title)}`}>Add another note</Link>
+                          <Link className={hasTodayCheckIn ? "btn btn-secondary" : "btn btn-primary"} href={`/check-in?goal=${selectedGoal.id}&title=${encodeURIComponent(selectedGoal.title)}`}>
+                            {hasTodayCheckIn ? "Add another note" : "Check in now"}
+                          </Link>
                         </div>
-                      </section>
-                    )}
-                    {missedYesterday && (
-                      <section className="card border-l-4 border-l-coral p-6">
-                        <h2 className="text-xl font-black text-coral">Restart today</h2>
-                        <p className="mt-3 leading-7 text-ink/70">Yesterday has no check-in for this goal. Keep it simple: write what blocked you, then choose one tiny action for today.</p>
-                        <Link className="btn btn-primary mt-5" href={`/check-in?goal=${selectedGoal.id}&title=${encodeURIComponent(selectedGoal.title)}`}>Restart with one action</Link>
                       </section>
                     )}
                   </aside>
