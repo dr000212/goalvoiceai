@@ -287,17 +287,19 @@ export default function ResultPage() {
                 <h2 className="flex items-center gap-3 text-lg font-black text-ink/72"><Sparkles className="h-6 w-6 text-leaf" aria-hidden /> Simple Analysis</h2>
                 <p className="mt-5 text-xl leading-9 text-ink/80">{analysis.insight}</p>
               </section>
-              <section className="card bg-leaf p-8 text-white">
+              <section className="card !border-leaf !bg-leaf p-8 !text-white">
                 <div className="flex items-start gap-5">
-                  <span className="depth-icon grid h-16 w-16 shrink-0 place-items-center rounded-full bg-white/10">
-                    <Rocket className="h-8 w-8 text-sage" aria-hidden />
+                  <span className="depth-icon grid h-16 w-16 shrink-0 place-items-center rounded-full bg-white/15">
+                    <Rocket className="h-8 w-8 text-white" aria-hidden />
                   </span>
                   <div>
-                    <p className="text-sm font-black uppercase tracking-[0.18em] text-sage">Next best action</p>
-                    <p className="mt-4 text-2xl font-black leading-snug text-white">{analysis.tomorrow_action}</p>
+                    <p className="text-sm font-black uppercase tracking-[0.18em] text-white/70">Next best action</p>
+                    <p className="mt-4 text-2xl font-black leading-snug !text-white">
+                      {analysis.tomorrow_action || "No next action was created yet. Re-run the analysis or add more detail to your check-in."}
+                    </p>
                   </div>
                 </div>
-                <Link href="/check-in" className="btn mt-6 bg-white text-leaf">
+                <Link href="/check-in" className="btn mt-6 !bg-white !text-leaf">
                   Add to Calendar <CalendarPlus className="h-5 w-5" aria-hidden />
                 </Link>
               </section>
