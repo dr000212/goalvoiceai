@@ -6,7 +6,7 @@ import { ChevronRight, Download, Edit3, LogOut, ShieldCheck, Trash2, UserRound, 
 import { Navbar } from "@/components/Navbar";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { logout } from "@/lib/auth";
-import { api } from "@/lib/api";
+import { api, getApiBaseUrl } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 import { ProfileForm } from "@/components/ProfileForm";
 import type { Profile } from "@/types/profile";
@@ -44,8 +44,7 @@ export default function SettingsPage() {
 
   async function exportData() {
     const { data } = await supabase.auth.getSession();
-    const apiBase = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000").replace(/\/+$/, "");
-    const response = await fetch(`${apiBase}/check-ins/export.csv`, {
+    const response = await fetch(`${getApiBaseUrl()}/check-ins/export.csv`, {
       headers: { Authorization: `Bearer ${data.session?.access_token}` }
     });
     if (!response.ok) {

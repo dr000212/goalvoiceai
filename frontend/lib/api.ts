@@ -2,7 +2,18 @@
 
 import { getAccessToken } from "./auth";
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000").replace(/\/+$/, "");
+const CONFIGURED_API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000").replace(/\/+$/, "");
+
+export function getApiBaseUrl() {
+  if (
+    typeof window !== "undefined" &&
+    window.location.hostname !== "localhost" &&
+    window.location.hostname !== "127.0.0.1"
+  ) {
+    return "/api/backend";
+  }
+  return CONFIGURED_API_BASE_URL;
+}
 
 function friendlyError(message: string, status?: number) {
   const lower = message.toLowerCase();
@@ -24,20 +35,8 @@ function friendlyError(message: string, status?: number) {
   return message || "Something went wrong. Please try again.";
 }
 
-function isBrowserProductionWithLocalApi() {
-  return (
-    typeof window !== "undefined" &&
-    window.location.hostname !== "localhost" &&
-    window.location.hostname !== "127.0.0.1" &&
-    API_BASE_URL.includes("localhost")
-  );
-}
-
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  if (isBrowserProductionWithLocalApi()) {
-    throw new Error("Backend URL is not set in Vercel. Set NEXT_PUBLIC_API_BASE_URL to your Render backend URL and redeploy Vercel.");
-  }
-
+  const apiBaseUrl = getApiBaseUrl();
   const token = await getAccessToken();
   const headers = new Headers(options.headers);
   if (!(options.body instanceof FormData)) headers.set("Content-Type", "application/json");
@@ -45,13 +44,13 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
+    response = await fetch(`${apiBaseUrl}${path}`, { ...options, headers });
   } catch (error) {
     const productionHint =
       typeof window !== "undefined" && window.location.hostname !== "localhost"
-        ? ` Check that NEXT_PUBLIC_API_BASE_URL in Vercel is your Render URL (${API_BASE_URL}) and that Render CORS allows ${window.location.origin}.`
+        ? ` Check that NEXT_PUBLIC_API_BASE_URL in Vercel is your Render URL (${CONFIGURED_API_BASE_URL}) and that Render is deployed and healthy.`
         : "";
-    throw new Error(friendlyError(`Could not reach backend ${API_BASE_URL}${path}.${productionHint}`));
+    throw new Error(friendlyError(`Could not reach backend ${apiBaseUrl}${path}.${productionHint}`));
   }
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: "Network failure." }));

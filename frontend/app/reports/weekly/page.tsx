@@ -7,7 +7,7 @@ import { Navbar } from "@/components/Navbar";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { GoalSwitcher } from "@/components/GoalSwitcher";
 import { WeeklyReportCard } from "@/components/WeeklyReportCard";
-import { api } from "@/lib/api";
+import { api, getApiBaseUrl } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 import type { CheckIn } from "@/types/checkin";
 import type { Goal } from "@/types/goal";
@@ -116,8 +116,7 @@ export default function WeeklyReportsPage() {
 
   async function exportCsv() {
     const { data } = await supabase.auth.getSession();
-    const apiBase = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000").replace(/\/+$/, "");
-    const response = await fetch(`${apiBase}/check-ins/export.csv`, {
+    const response = await fetch(`${getApiBaseUrl()}/check-ins/export.csv`, {
       headers: { Authorization: `Bearer ${data.session?.access_token}` }
     });
     if (!response.ok) {
