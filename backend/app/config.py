@@ -1,4 +1,7 @@
 from functools import lru_cache
+from typing import Any
+
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -14,6 +17,22 @@ class Settings(BaseSettings):
     admin_user_ids: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+
+    @field_validator(
+        "supabase_url",
+        "supabase_service_role_key",
+        "supabase_jwt_secret",
+        "openai_api_key",
+        "openai_transcription_model",
+        "database_url",
+        "cors_origins",
+        "cors_origin_regex",
+        "admin_user_ids",
+        mode="before",
+    )
+    @classmethod
+    def strip_env_value(cls, value: Any) -> Any:
+        return value.strip() if isinstance(value, str) else value
 
     @property
     def allowed_origins(self) -> list[str]:

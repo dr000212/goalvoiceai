@@ -67,7 +67,8 @@ Return only valid JSON using this schema:
 class OpenAIService:
     def __init__(self) -> None:
         settings = get_settings()
-        self.client = OpenAI(api_key=settings.openai_api_key) if settings.openai_api_key else None
+        openai_api_key = settings.openai_api_key.strip()
+        self.client = OpenAI(api_key=openai_api_key) if openai_api_key else None
 
     def _chat_json(self, system_prompt: str, user_prompt: str) -> dict[str, Any]:
         if self.client is None:
