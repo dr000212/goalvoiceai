@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { CalendarCheck, CheckCircle2, ChevronRight, FileText, Filter, Plus, XCircle } from "lucide-react";
+import { CalendarCheck, CheckCircle2, Plus, XCircle } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { GoalCard } from "@/components/GoalCard";
@@ -106,43 +106,12 @@ function CheckInCalendar({ days }: { days: CalendarDay[] }) {
   );
 }
 
-function DailyReports({ reports }: { reports: Dashboard["daily_reports"] }) {
-  return (
-    <section className="grid gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="section-title flex items-center gap-2"><FileText className="h-6 w-6" aria-hidden /> Daily reports</h2>
-        <Filter className="h-5 w-5 text-ink/65" aria-hidden />
-      </div>
-      <div className="mt-4 grid gap-3">
-        {reports.length === 0 && <p className="soft-row p-5 text-sm text-ink/65">No daily reports yet. Submit a check-in to create your first one.</p>}
-        {reports.map((report) => (
-          <Link key={report.id} href={`/check-in/${report.id}/result`} className="soft-row depth-tile flex items-center justify-between gap-4 p-4 transition hover:border-leaf/30 hover:shadow-soft">
-            <div className="flex min-w-0 items-center gap-4">
-              <span className="depth-icon grid h-11 w-11 shrink-0 place-items-center rounded-full bg-sage text-leaf">
-                <FileText className="h-5 w-5" aria-hidden />
-              </span>
-              <div className="min-w-0">
-                <p className="font-black">{report.goal_title || "Goal check-in"}</p>
-                <p className="text-xs font-semibold text-ink/50">{report.date} {report.mood ? `- ${report.mood}` : ""}</p>
-              </div>
-            </div>
-            <div className="flex shrink-0 items-center gap-3">
-              <span className={`text-lg font-black ${(report.score ?? 0) >= 60 ? "text-leaf" : "text-coral"}`}>{report.score ?? "--"}/100</span>
-              <ChevronRight className="h-5 w-5 text-ink/45" aria-hidden />
-            </div>
-          </Link>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 function Badges({ streak, reportCount, completedGoals }: { streak: number; reportCount: number; completedGoals: number }) {
   const badges = [
-    { label: "First check-in", earned: reportCount > 0 },
-    { label: "3-day streak", earned: streak >= 3 },
-    { label: "7-day streak", earned: streak >= 7 },
-    { label: "Completed goal", earned: completedGoals > 0 }
+    { label: "First check-in", emoji: "🎙️", earned: reportCount > 0 },
+    { label: "3-day streak", emoji: "🔥", earned: streak >= 3 },
+    { label: "7-day streak", emoji: "🏆", earned: streak >= 7 },
+    { label: "Completed goal", emoji: "✅", earned: completedGoals > 0 }
   ];
   return (
     <section className="card p-6">
@@ -150,7 +119,8 @@ function Badges({ streak, reportCount, completedGoals }: { streak: number; repor
       <div className="mt-4 grid gap-3 md:grid-cols-4">
         {badges.map((badge) => (
           <div key={badge.label} className={`depth-tile rounded-2xl border p-4 text-center ${badge.earned ? "border-leaf bg-sage text-leaf" : "border-ink/10 bg-[#f5f4ef] text-ink/45"}`}>
-            <p className="font-black">{badge.earned ? "Unlocked" : "Locked"}</p>
+            <p className="text-4xl">{badge.emoji}</p>
+            <p className="mt-3 font-black">{badge.earned ? "Unlocked" : "Locked"}</p>
             <p className="mt-1 text-sm font-semibold">{badge.label}</p>
           </div>
         ))}
@@ -317,7 +287,6 @@ export default function DashboardPage() {
                 </div>
               </section>
             )}
-            <DailyReports reports={selectedReports} />
             <Badges streak={streakFromReports(selectedReports)} reportCount={selectedReports.length} completedGoals={0} />
           </>
         )}

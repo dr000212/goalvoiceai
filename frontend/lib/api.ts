@@ -2,7 +2,7 @@
 
 import { getAccessToken } from "./auth";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000").replace(/\/+$/, "");
 
 function friendlyError(message: string, status?: number) {
   const lower = message.toLowerCase();
@@ -12,7 +12,7 @@ function friendlyError(message: string, status?: number) {
   if (status === 404) return "We could not find that item. Refresh and try again.";
   if (status === 429) return message || "Too many requests. Please wait a little and try again.";
   if (lower.includes("failed to fetch") || lower.includes("could not reach")) {
-    return "Could not reach the server. Check your connection and try again.";
+    return message;
   }
   if (lower.includes("openai returned an empty transcript")) {
     return "I could not hear enough speech. Record at least 5 seconds and speak close to the microphone.";
@@ -51,7 +51,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       typeof window !== "undefined" && window.location.hostname !== "localhost"
         ? ` Check that NEXT_PUBLIC_API_BASE_URL in Vercel is your Render URL (${API_BASE_URL}) and that Render CORS allows ${window.location.origin}.`
         : "";
-    throw new Error(friendlyError(`Could not reach ${API_BASE_URL}${path}.${productionHint}`));
+    throw new Error(friendlyError(`Could not reach backend ${API_BASE_URL}${path}.${productionHint}`));
   }
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: "Network failure." }));

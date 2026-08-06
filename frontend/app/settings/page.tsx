@@ -44,7 +44,7 @@ export default function SettingsPage() {
 
   async function exportData() {
     const { data } = await supabase.auth.getSession();
-    const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+    const apiBase = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000").replace(/\/+$/, "");
     const response = await fetch(`${apiBase}/check-ins/export.csv`, {
       headers: { Authorization: `Bearer ${data.session?.access_token}` }
     });

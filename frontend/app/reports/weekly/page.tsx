@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { CalendarDays, CheckCircle2, ChevronRight, FileText, Lock, Sparkles, XCircle } from "lucide-react";
+import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, FileText, Lock, Sparkles, XCircle } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { GoalSwitcher } from "@/components/GoalSwitcher";
@@ -24,13 +24,15 @@ function dateKey(date: Date) {
   return date.toISOString().slice(0, 10);
 }
 
-function buildCalendarDays(checkIns: CheckIn[]): CalendarDay[] {
+function buildCalendarDays(checkIns: CheckIn[], pageOffset: number): CalendarDay[] {
   const checkedDates = new Set(checkIns.map((item) => item.check_in_date).filter(Boolean));
   const today = new Date();
-  const start = new Date(today);
-  start.setDate(today.getDate() - 6);
+  const end = new Date(today);
+  end.setDate(today.getDate() - pageOffset * 30);
+  const start = new Date(end);
+  start.setDate(end.getDate() - 29);
 
-  return Array.from({ length: 7 }, (_, index) => {
+  return Array.from({ length: 30 }, (_, index) => {
     const date = new Date(start);
     date.setDate(start.getDate() + index);
     const key = dateKey(date);
@@ -51,6 +53,7 @@ export default function WeeklyReportsPage() {
   const [selectedGoalId, setSelectedGoalId] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
   const [search, setSearch] = useState("");
+  const [calendarPage, setCalendarPage] = useState(0);
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -99,7 +102,7 @@ export default function WeeklyReportsPage() {
   }
 
   const filteredCheckIns = selectedGoalId ? checkIns.filter((item) => item.goal_id === selectedGoalId) : checkIns;
-  const calendarDays = buildCalendarDays(filteredCheckIns);
+  const calendarDays = buildCalendarDays(filteredCheckIns, calendarPage);
   const uniqueCheckInDays = new Set(filteredCheckIns.map((item) => item.check_in_date).filter(Boolean)).size;
   const weeklyUnlocked = uniqueCheckInDays >= 7;
   const selectedReports = filteredCheckIns.filter((item) => item.check_in_date === selectedDate);
@@ -113,7 +116,7 @@ export default function WeeklyReportsPage() {
 
   async function exportCsv() {
     const { data } = await supabase.auth.getSession();
-    const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+    const apiBase = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000").replace(/\/+$/, "");
     const response = await fetch(`${apiBase}/check-ins/export.csv`, {
       headers: { Authorization: `Bearer ${data.session?.access_token}` }
     });
@@ -154,20 +157,28 @@ export default function WeeklyReportsPage() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="section-title flex items-center gap-2"><CalendarDays className="h-6 w-6" aria-hidden /> Daily reports</h2>
-              <p className="mt-1 text-sm text-ink/65">Click a date to open the reports saved for that day.</p>
+              <p className="mt-1 text-sm text-ink/65">Click a date to open that day. Use the arrows to move through 30-day windows.</p>
             </div>
-            <div className="flex gap-3 text-[11px] font-black uppercase text-ink/60">
-              <span className="flex items-center gap-1"><CheckCircle2 className="h-4 w-4 text-leaf" aria-hidden /> Completed</span>
-              <span className="flex items-center gap-1"><XCircle className="h-4 w-4 text-coral" aria-hidden /> Missed</span>
+            <div className="flex flex-wrap items-center gap-3">
+              <button className="btn btn-secondary px-3" onClick={() => setCalendarPage((page) => page + 1)} type="button" title="Previous 30 days">
+                <ChevronLeft className="h-5 w-5" aria-hidden />
+              </button>
+              <button className="btn btn-secondary px-3" onClick={() => setCalendarPage((page) => Math.max(0, page - 1))} disabled={calendarPage === 0} type="button" title="Next 30 days">
+                <ChevronRight className="h-5 w-5" aria-hidden />
+              </button>
+              <div className="flex gap-3 text-[11px] font-black uppercase text-ink/60">
+                <span className="flex items-center gap-1"><CheckCircle2 className="h-4 w-4 text-leaf" aria-hidden /> Completed</span>
+                <span className="flex items-center gap-1"><XCircle className="h-4 w-4 text-coral" aria-hidden /> Missed</span>
+              </div>
             </div>
           </div>
-          <div className="mt-5 grid grid-cols-7 gap-2">
+          <div className="mt-5 flex gap-2 overflow-x-auto pb-3">
             {calendarDays.map((day) => {
               const active = selectedDate === day.date;
               return (
                 <button
                   key={day.date}
-                  className={`depth-tile grid min-h-20 place-items-center rounded-xl border p-2 text-center transition ${
+                  className={`depth-tile grid min-h-20 min-w-28 place-items-center rounded-xl border p-2 text-center transition ${
                     day.status === "completed"
                       ? "border-leaf/25 bg-sage"
                       : day.status === "today"
