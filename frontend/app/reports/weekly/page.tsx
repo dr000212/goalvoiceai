@@ -171,13 +171,13 @@ export default function WeeklyReportsPage() {
               </div>
             </div>
           </div>
-          <div className="mt-5 flex gap-2 overflow-x-auto pb-3">
+          <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-5 lg:grid-cols-10">
             {calendarDays.map((day) => {
               const active = selectedDate === day.date;
               return (
                 <button
                   key={day.date}
-                  className={`depth-tile grid min-h-20 min-w-28 place-items-center rounded-xl border p-2 text-center transition ${
+                  className={`depth-tile grid min-h-20 place-items-center rounded-xl border p-2 text-center transition ${
                     day.status === "completed"
                       ? "border-leaf/25 bg-sage"
                       : day.status === "today"
