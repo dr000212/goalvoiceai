@@ -1,10 +1,12 @@
 from datetime import date
+import re
 from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
 
 from app.auth import get_current_user_id
+from app.config import get_settings
 from app.main import app
 from app.schemas.analysis_schema import DailyAnalysisCreate
 from app.schemas.check_in_schema import AnalyzeCheckInRequest
@@ -16,6 +18,12 @@ from app.services.transcription_service import TranscriptionService
 
 
 USER_ID = "11111111-1111-1111-1111-111111111111"
+
+
+def test_vercel_origin_is_allowed_by_cors_config():
+    settings = get_settings()
+    origin = "https://goalvoiceai-fz7k.vercel.app"
+    assert origin in settings.allowed_origins or re.fullmatch(settings.cors_origin_regex, origin)
 
 
 class Query:
